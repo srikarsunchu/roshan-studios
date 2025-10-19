@@ -163,139 +163,67 @@ const DynamicBackground = ({ logoPath = "/images/logos/logo_light.png" }) => {
       "u_resolution"
     );
 
-    const loadLogo = () => {
-      const image = new Image();
+    const createTriangleParticles = () => {
+      console.log('Creating hardcoded triangle particles - production-safe approach');
       
-      // Remove crossOrigin for same-origin requests to avoid CORS issues
-      // image.crossOrigin = "anonymous";
-
-      image.onload = () => {
-        if (isCleanedUpRef.current) return;
-
-        // Add timeout to ensure image is fully loaded
-        setTimeout(() => {
-          if (isCleanedUpRef.current) return;
-
-          const tempCanvas = document.createElement("canvas");
-          const tempCtx = tempCanvas.getContext("2d");
-          tempCanvas.width = CONFIG.logoSize;
-          tempCanvas.height = CONFIG.logoSize;
-
-          // Clear canvas with transparent background
-          tempCtx.clearRect(0, 0, CONFIG.logoSize, CONFIG.logoSize);
-
-          const scale = 0.9;
-          const scaledSize = CONFIG.logoSize * scale;
-          const offset = (CONFIG.logoSize - scaledSize) / 2;
-
-          // Ensure image maintains aspect ratio and quality
-          tempCtx.imageSmoothingEnabled = true;
-          tempCtx.imageSmoothingQuality = 'high';
-          
-          tempCtx.drawImage(image, offset, offset, scaledSize, scaledSize);
-          
-          try {
-            const imageData = tempCtx.getImageData(
-              0,
-              0,
-              CONFIG.logoSize,
-              CONFIG.logoSize
-            );
-
-            console.log('Image loaded successfully, dimensions:', image.width, 'x', image.height);
-            console.log('Canvas dimensions:', CONFIG.logoSize, 'x', CONFIG.logoSize);
-            
-            initParticleSystem(imageData.data, CONFIG.logoSize);
-          } catch (error) {
-            console.error('Error getting image data:', error);
-            // Fallback: create a simple triangle shape
-            createFallbackTriangle();
-          }
-        }, 100);
-      };
-
-      image.onerror = (error) => {
-        console.error("Failed to load logo image:", logoPath, error);
-        // Fallback: create a simple triangle shape
-        createFallbackTriangle();
-      };
-
-      // Add cache busting and ensure proper path
-      const cacheBuster = Date.now();
-      image.src = `${logoPath}?v=${cacheBuster}`;
-    };
-
-    const createFallbackTriangle = () => {
-      console.log('Creating fallback triangle shape');
-      
-      const tempCanvas = document.createElement("canvas");
-      const tempCtx = tempCanvas.getContext("2d");
-      tempCanvas.width = CONFIG.logoSize;
-      tempCanvas.height = CONFIG.logoSize;
-
-      // Clear canvas with transparent background
-      tempCtx.clearRect(0, 0, CONFIG.logoSize, CONFIG.logoSize);
-
-      // Draw white triangle
-      tempCtx.fillStyle = '#ffffff';
-      tempCtx.beginPath();
-      
-      const centerX = CONFIG.logoSize / 2;
-      const centerY = CONFIG.logoSize / 2;
-      const size = CONFIG.logoSize * 0.4;
-      
-      // Create triangle points
-      tempCtx.moveTo(centerX, centerY - size);
-      tempCtx.lineTo(centerX - size, centerY + size);
-      tempCtx.lineTo(centerX + size, centerY + size);
-      tempCtx.closePath();
-      tempCtx.fill();
-
-      const imageData = tempCtx.getImageData(0, 0, CONFIG.logoSize, CONFIG.logoSize);
-      initParticleSystem(imageData.data, CONFIG.logoSize);
-    };
-
-    function initParticleSystem(pixels, dim) {
-      if (isCleanedUpRef.current) return;
-
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
-
-      particleGridRef.current = [];
-      const validParticles = [];
-      const validPositions = [];
-      const validColors = [];
-
-      for (let i = 0; i < dim; i++) {
-        for (let j = 0; j < dim; j++) {
-          const pixelIndex = (i * dim + j) * 4;
-          const alpha = pixels[pixelIndex + 3];
-
-          if (alpha > 128) {
-            const x = centerX + (j - dim / 2) * 1.0;
-            const y = centerY + (i - dim / 2) * 1.0;
-
-            validPositions.push(x, y);
-            validColors.push(
-              pixels[pixelIndex] / 255,
-              pixels[pixelIndex + 1] / 255,
-              pixels[pixelIndex + 2] / 255,
-              pixels[pixelIndex + 3] / 255
-            );
-
-            validParticles.push({
-              ox: x,
-              oy: y,
+      const size = 300; // Triangle size in pixels
+      
+      const particles = [];
+      const positions = [];
+      const colors = [];
+      
+      // Generate particles for triangle "A" shape
+      const density = 3; // Particle spacing
+      
+      // Create the outer triangle shape
+      for (let y = -size; y <= size; y += density) {
+        for (let x = -size; x <= size; x += density) {
+          // Check if point is inside triangle
+          const isInTriangle = isPointInTriangle(
+            x, y,
+            0, -size,           // Top point
+            -size * 0.8, size, // Bottom left
+            size * 0.8, size   // Bottom right
+          );
+          
+          // Check if point is NOT in the inner triangle (creates the "A" hole)
+          const isInInnerTriangle = isPointInTriangle(
+            x, y,
+            0, -size * 0.3,     // Inner top
+            -size * 0.25, size * 0.3, // Inner bottom left
+            size * 0.25, size * 0.3   // Inner bottom right
+          );
+          
+          // Add horizontal bar of the "A"
+          const isInCrossbar = (
+            y >= -size * 0.1 && y <= size * 0.1 &&
+            x >= -size * 0.4 && x <= size * 0.4
+          );
+          
+          if ((isInTriangle && !isInInnerTriangle) || isInCrossbar) {
+            const finalX = centerX + x;
+            const finalY = centerY + y;
+            
+            positions.push(finalX, finalY);
+            colors.push(1.0, 1.0, 1.0, 1.0); // White particles
+            
+            particles.push({
+              ox: finalX,
+              oy: finalY,
               vx: 0,
               vy: 0,
             });
           }
         }
       }
-
-      particleGridRef.current = validParticles;
-      posArrayRef.current = new Float32Array(validPositions);
-      colorArrayRef.current = new Float32Array(validColors);
+      
+      console.log(`Created ${particles.length} hardcoded triangle particles`);
+      
+      particleGridRef.current = particles;
+      posArrayRef.current = new Float32Array(positions);
+      colorArrayRef.current = new Float32Array(colors);
 
       const positionBuffer = gl.createBuffer();
       const colorBuffer = gl.createBuffer();
@@ -309,12 +237,22 @@ const DynamicBackground = ({ logoPath = "/images/logos/logo_light.png" }) => {
       geometryRef.current = {
         positionBuffer,
         colorBuffer,
-        vertexCount: validParticles.length,
+        vertexCount: particles.length,
       };
 
-      console.log(`Created ${validParticles.length} particles`);
       startAnimation();
-    }
+    };
+    
+    // Helper function to check if point is inside triangle
+    const isPointInTriangle = (px, py, x1, y1, x2, y2, x3, y3) => {
+      const denom = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3);
+      const a = ((y2 - y3) * (px - x3) + (x3 - x2) * (py - y3)) / denom;
+      const b = ((y3 - y1) * (px - x3) + (x1 - x3) * (py - y3)) / denom;
+      const c = 1 - a - b;
+      
+      return a >= 0 && b >= 0 && c >= 0;
+    };
+
 
     function startAnimation() {
       function animate() {
@@ -449,32 +387,16 @@ const DynamicBackground = ({ logoPath = "/images/logos/logo_light.png" }) => {
       canvas.style.width = window.innerWidth + "px";
       canvas.style.height = window.innerHeight + "px";
 
+      // Recreate triangle particles with new canvas dimensions
       if (geometryRef.current && particleGridRef.current.length > 0) {
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const dim = Math.sqrt(particleGridRef.current.length);
-
-        for (let i = 0; i < particleGridRef.current.length; i++) {
-          const row = Math.floor(i / dim);
-          const col = i % dim;
-          const newX = centerX + (col - dim / 2) * 1.0;
-          const newY = centerY + (row - dim / 2) * 1.0;
-
-          particleGridRef.current[i].ox = newX;
-          particleGridRef.current[i].oy = newY;
-          posArrayRef.current[i * 2] = newX;
-          posArrayRef.current[i * 2 + 1] = newY;
-        }
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, geometryRef.current.positionBuffer);
-        gl.bufferSubData(gl.ARRAY_BUFFER, 0, posArrayRef.current);
+        createTriangleParticles();
       }
     };
 
     document.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("resize", handleResize);
 
-    loadLogo();
+    createTriangleParticles();
 
     return () => {
       isCleanedUpRef.current = true;
