@@ -139,15 +139,15 @@ const page = () => {
 
         <div className="contact-copy-links">
           <Copy delay={1.6}>
-            <a href="/studio" onClick={(e) => handleNavigation(e, "/studio")}>
+            <div>
               <p className="caps sm">Studio Overview</p>
-            </a>
-            <a href="/archive" onClick={(e) => handleNavigation(e, "/archive")}>
+            </div>
+            <div>
               <p className="caps sm">Project Archive</p>
-            </a>
-            <a href="/work" onClick={(e) => handleNavigation(e, "/work")}>
+            </div>
+            <div>
               <p className="caps sm">Selected Work</p>
-            </a>
+            </div>
           </Copy>
         </div>
       </div>

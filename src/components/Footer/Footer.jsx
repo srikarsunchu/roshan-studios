@@ -54,49 +54,39 @@ const Footer = () => {
             </div>
           </div>
           <div className="footer-social">
-            <a href="mailto:contact@codegrid.com">
-              <div className="footer-text">
-                <div className="footer-text-content">
-                  <h2>Email</h2>
-                </div>
+            <div className="footer-text">
+              <div className="footer-text-content">
+                <h2>Email</h2>
               </div>
-            </a>
+            </div>
           </div>
           <div className="footer-social">
-            <a href="https://www.youtube.com/@codegrid">
-              <div className="footer-text">
-                <div className="footer-text-content">
-                  <h2>LinkedIn</h2>
-                </div>
+            <div className="footer-text">
+              <div className="footer-text-content">
+                <h2>LinkedIn</h2>
               </div>
-            </a>
+            </div>
           </div>
           <div className="footer-social">
-            <a href="https://www.youtube.com/@codegrid">
-              <div className="footer-text">
-                <div className="footer-text-content">
-                  <h2>Behance</h2>
-                </div>
+            <div className="footer-text">
+              <div className="footer-text-content">
+                <h2>Behance</h2>
               </div>
-            </a>
+            </div>
           </div>
           <div className="footer-social">
-            <a href="https://www.youtube.com/@codegrid">
-              <div className="footer-text">
-                <div className="footer-text-content">
-                  <h2>Instagram</h2>
-                </div>
+            <div className="footer-text">
+              <div className="footer-text-content">
+                <h2>Instagram</h2>
               </div>
-            </a>
+            </div>
           </div>
           <div className="footer-social">
-            <a href="https://vimeo.com/codegrid">
-              <div className="footer-text">
-                <div className="footer-text-content">
-                  <h2>Vimeo</h2>
-                </div>
+            <div className="footer-text">
+              <div className="footer-text-content">
+                <h2>Vimeo</h2>
               </div>
-            </a>
+            </div>
           </div>
         </div>
       </div>
