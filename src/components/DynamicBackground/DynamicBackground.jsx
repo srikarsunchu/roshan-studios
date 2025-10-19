@@ -163,46 +163,80 @@ const DynamicBackground = ({ logoPath = "/images/logos/logo_light.png" }) => {
       "u_resolution"
     );
 
-    const createTriangleParticles = () => {
-      console.log('Creating hardcoded triangle particles - production-safe approach');
+    const createLogoParticles = () => {
+      console.log('Creating logo particles from SVG path - production-safe approach');
       
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
-      const size = 300; // Triangle size in pixels
+      
+      // Scale factor to fit the logo nicely on screen
+      const scale = 0.15; // Adjust this to make logo bigger/smaller
       
       const particles = [];
       const positions = [];
       const colors = [];
       
-      // Generate particles for triangle "A" shape
-      const density = 3; // Particle spacing
+      // Simplified "A" shape based on the actual logo proportions
+      // Using key points from the SVG path to create the shape
+      const density = 4; // Particle spacing
       
-      // Create the outer triangle shape
-      for (let y = -size; y <= size; y += density) {
-        for (let x = -size; x <= size; x += density) {
-          // Check if point is inside triangle
-          const isInTriangle = isPointInTriangle(
-            x, y,
-            0, -size,           // Top point
-            -size * 0.8, size, // Bottom left
-            size * 0.8, size   // Bottom right
+      // Define the "A" shape using the proportions from your actual logo
+      const logoWidth = 600 * scale;
+      const logoHeight = 700 * scale;
+      
+      for (let y = -logoHeight/2; y <= logoHeight/2; y += density) {
+        for (let x = -logoWidth/2; x <= logoWidth/2; x += density) {
+          
+          // Normalize coordinates for easier calculation
+          const nx = x / (logoWidth/2);  // -1 to 1
+          const ny = y / (logoHeight/2); // -1 to 1
+          
+          // Create the outer "A" triangle
+          const leftEdge = -0.8 + (ny + 1) * 0.4;   // Left diagonal edge
+          const rightEdge = 0.8 - (ny + 1) * 0.4;   // Right diagonal edge
+          
+          // Inner triangle (the hole in the "A")
+          const innerLeftEdge = -0.25 + (ny + 0.3) * 0.125;
+          const innerRightEdge = 0.25 - (ny + 0.3) * 0.125;
+          
+          // Horizontal crossbar
+          const crossbarTop = -0.1;
+          const crossbarBottom = 0.1;
+          const crossbarLeft = -0.5;
+          const crossbarRight = 0.5;
+          
+          // Check if point is in the outer triangle
+          const inOuterTriangle = (
+            ny >= -1 && ny <= 1 &&
+            nx >= leftEdge && nx <= rightEdge &&
+            ny >= -0.9  // Don't go all the way to the top point
           );
           
-          // Check if point is NOT in the inner triangle (creates the "A" hole)
-          const isInInnerTriangle = isPointInTriangle(
-            x, y,
-            0, -size * 0.3,     // Inner top
-            -size * 0.25, size * 0.3, // Inner bottom left
-            size * 0.25, size * 0.3   // Inner bottom right
+          // Check if point is in the inner triangle (hole)
+          const inInnerTriangle = (
+            ny >= -0.3 && ny <= 1 &&
+            nx >= innerLeftEdge && nx <= innerRightEdge
           );
           
-          // Add horizontal bar of the "A"
-          const isInCrossbar = (
-            y >= -size * 0.1 && y <= size * 0.1 &&
-            x >= -size * 0.4 && x <= size * 0.4
+          // Check if point is in the crossbar
+          const inCrossbar = (
+            ny >= crossbarTop && ny <= crossbarBottom &&
+            nx >= crossbarLeft && nx <= crossbarRight
           );
           
-          if ((isInTriangle && !isInInnerTriangle) || isInCrossbar) {
+          // Add rounded corners effect for the bottom
+          const bottomRadius = 0.15;
+          const bottomLeftCorner = (
+            Math.sqrt((nx - leftEdge) ** 2 + (ny - 1) ** 2) < bottomRadius &&
+            nx < leftEdge + bottomRadius && ny > 1 - bottomRadius
+          );
+          const bottomRightCorner = (
+            Math.sqrt((nx - rightEdge) ** 2 + (ny - 1) ** 2) < bottomRadius &&
+            nx > rightEdge - bottomRadius && ny > 1 - bottomRadius
+          );
+          
+          // Final condition: in outer triangle but not in inner triangle, or in crossbar
+          if ((inOuterTriangle && !inInnerTriangle) || inCrossbar || bottomLeftCorner || bottomRightCorner) {
             const finalX = centerX + x;
             const finalY = centerY + y;
             
@@ -219,7 +253,7 @@ const DynamicBackground = ({ logoPath = "/images/logos/logo_light.png" }) => {
         }
       }
       
-      console.log(`Created ${particles.length} hardcoded triangle particles`);
+      console.log(`Created ${particles.length} logo particles from SVG-based geometry`);
       
       particleGridRef.current = particles;
       posArrayRef.current = new Float32Array(positions);
@@ -387,16 +421,16 @@ const DynamicBackground = ({ logoPath = "/images/logos/logo_light.png" }) => {
       canvas.style.width = window.innerWidth + "px";
       canvas.style.height = window.innerHeight + "px";
 
-      // Recreate triangle particles with new canvas dimensions
+      // Recreate logo particles with new canvas dimensions
       if (geometryRef.current && particleGridRef.current.length > 0) {
-        createTriangleParticles();
+        createLogoParticles();
       }
     };
 
     document.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("resize", handleResize);
 
-    createTriangleParticles();
+    createLogoParticles();
 
     return () => {
       isCleanedUpRef.current = true;
