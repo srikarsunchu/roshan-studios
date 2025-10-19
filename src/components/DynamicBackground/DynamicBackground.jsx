@@ -163,101 +163,83 @@ const DynamicBackground = ({ logoPath = "/images/logos/logo_light.png" }) => {
       "u_resolution"
     );
 
-    const createLogoParticles = () => {
-      console.log('Creating logo particles from SVG path - production-safe approach');
-      
+    const loadLogo = () => {
+      const image = new Image();
+
+      image.onload = () => {
+        if (isCleanedUpRef.current) return;
+
+        const tempCanvas = document.createElement("canvas");
+        const tempCtx = tempCanvas.getContext("2d", { willReadFrequently: true });
+        tempCanvas.width = CONFIG.logoSize;
+        tempCanvas.height = CONFIG.logoSize;
+
+        tempCtx.clearRect(0, 0, CONFIG.logoSize, CONFIG.logoSize);
+
+        const scale = 0.9;
+        const scaledSize = CONFIG.logoSize * scale;
+        const offset = (CONFIG.logoSize - scaledSize) / 2;
+
+        tempCtx.drawImage(image, offset, offset, scaledSize, scaledSize);
+        
+        const imageData = tempCtx.getImageData(
+          0,
+          0,
+          CONFIG.logoSize,
+          CONFIG.logoSize
+        );
+
+        initParticleSystem(imageData.data, CONFIG.logoSize);
+      };
+
+      image.onerror = () => {
+        console.error("Failed to load logo image:", logoPath);
+      };
+
+      image.src = logoPath;
+    };
+
+    function initParticleSystem(pixels, dim) {
+      if (isCleanedUpRef.current) return;
+
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
-      
-      // Scale factor to fit the logo nicely on screen
-      const scale = 0.15; // Adjust this to make logo bigger/smaller
-      
-      const particles = [];
-      const positions = [];
-      const colors = [];
-      
-      // Simplified "A" shape based on the actual logo proportions
-      // Using key points from the SVG path to create the shape
-      const density = 4; // Particle spacing
-      
-      // Define the "A" shape using the proportions from your actual logo
-      const logoWidth = 600 * scale;
-      const logoHeight = 700 * scale;
-      
-      for (let y = -logoHeight/2; y <= logoHeight/2; y += density) {
-        for (let x = -logoWidth/2; x <= logoWidth/2; x += density) {
-          
-          // Normalize coordinates for easier calculation
-          const nx = x / (logoWidth/2);  // -1 to 1
-          const ny = y / (logoHeight/2); // -1 to 1
-          
-          // Create the outer "A" triangle
-          const leftEdge = -0.8 + (ny + 1) * 0.4;   // Left diagonal edge
-          const rightEdge = 0.8 - (ny + 1) * 0.4;   // Right diagonal edge
-          
-          // Inner triangle (the hole in the "A")
-          const innerLeftEdge = -0.25 + (ny + 0.3) * 0.125;
-          const innerRightEdge = 0.25 - (ny + 0.3) * 0.125;
-          
-          // Horizontal crossbar
-          const crossbarTop = -0.1;
-          const crossbarBottom = 0.1;
-          const crossbarLeft = -0.5;
-          const crossbarRight = 0.5;
-          
-          // Check if point is in the outer triangle
-          const inOuterTriangle = (
-            ny >= -1 && ny <= 1 &&
-            nx >= leftEdge && nx <= rightEdge &&
-            ny >= -0.9  // Don't go all the way to the top point
-          );
-          
-          // Check if point is in the inner triangle (hole)
-          const inInnerTriangle = (
-            ny >= -0.3 && ny <= 1 &&
-            nx >= innerLeftEdge && nx <= innerRightEdge
-          );
-          
-          // Check if point is in the crossbar
-          const inCrossbar = (
-            ny >= crossbarTop && ny <= crossbarBottom &&
-            nx >= crossbarLeft && nx <= crossbarRight
-          );
-          
-          // Add rounded corners effect for the bottom
-          const bottomRadius = 0.15;
-          const bottomLeftCorner = (
-            Math.sqrt((nx - leftEdge) ** 2 + (ny - 1) ** 2) < bottomRadius &&
-            nx < leftEdge + bottomRadius && ny > 1 - bottomRadius
-          );
-          const bottomRightCorner = (
-            Math.sqrt((nx - rightEdge) ** 2 + (ny - 1) ** 2) < bottomRadius &&
-            nx > rightEdge - bottomRadius && ny > 1 - bottomRadius
-          );
-          
-          // Final condition: in outer triangle but not in inner triangle, or in crossbar
-          if ((inOuterTriangle && !inInnerTriangle) || inCrossbar || bottomLeftCorner || bottomRightCorner) {
-            const finalX = centerX + x;
-            const finalY = centerY + y;
-            
-            positions.push(finalX, finalY);
-            colors.push(1.0, 1.0, 1.0, 1.0); // White particles
-            
-            particles.push({
-              ox: finalX,
-              oy: finalY,
+
+      particleGridRef.current = [];
+      const validParticles = [];
+      const validPositions = [];
+      const validColors = [];
+
+      for (let i = 0; i < dim; i++) {
+        for (let j = 0; j < dim; j++) {
+          const pixelIndex = (i * dim + j) * 4;
+          const alpha = pixels[pixelIndex + 3];
+
+          if (alpha > 10) {
+            const x = centerX + (j - dim / 2) * 1.0;
+            const y = centerY + (i - dim / 2) * 1.0;
+
+            validPositions.push(x, y);
+            validColors.push(
+              pixels[pixelIndex] / 255,
+              pixels[pixelIndex + 1] / 255,
+              pixels[pixelIndex + 2] / 255,
+              pixels[pixelIndex + 3] / 255
+            );
+
+            validParticles.push({
+              ox: x,
+              oy: y,
               vx: 0,
               vy: 0,
             });
           }
         }
       }
-      
-      console.log(`Created ${particles.length} logo particles from SVG-based geometry`);
-      
-      particleGridRef.current = particles;
-      posArrayRef.current = new Float32Array(positions);
-      colorArrayRef.current = new Float32Array(colors);
+
+      particleGridRef.current = validParticles;
+      posArrayRef.current = new Float32Array(validPositions);
+      colorArrayRef.current = new Float32Array(validColors);
 
       const positionBuffer = gl.createBuffer();
       const colorBuffer = gl.createBuffer();
@@ -271,21 +253,12 @@ const DynamicBackground = ({ logoPath = "/images/logos/logo_light.png" }) => {
       geometryRef.current = {
         positionBuffer,
         colorBuffer,
-        vertexCount: particles.length,
+        vertexCount: validParticles.length,
       };
 
+      console.log(`Created ${validParticles.length} particles`);
       startAnimation();
-    };
-    
-    // Helper function to check if point is inside triangle
-    const isPointInTriangle = (px, py, x1, y1, x2, y2, x3, y3) => {
-      const denom = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3);
-      const a = ((y2 - y3) * (px - x3) + (x3 - x2) * (py - y3)) / denom;
-      const b = ((y3 - y1) * (px - x3) + (x1 - x3) * (py - y3)) / denom;
-      const c = 1 - a - b;
-      
-      return a >= 0 && b >= 0 && c >= 0;
-    };
+    }
 
 
     function startAnimation() {
@@ -421,16 +394,16 @@ const DynamicBackground = ({ logoPath = "/images/logos/logo_light.png" }) => {
       canvas.style.width = window.innerWidth + "px";
       canvas.style.height = window.innerHeight + "px";
 
-      // Recreate logo particles with new canvas dimensions
+      // Reload logo with new canvas dimensions
       if (geometryRef.current && particleGridRef.current.length > 0) {
-        createLogoParticles();
+        loadLogo();
       }
     };
 
     document.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("resize", handleResize);
 
-    createLogoParticles();
+    loadLogo();
 
     return () => {
       isCleanedUpRef.current = true;
