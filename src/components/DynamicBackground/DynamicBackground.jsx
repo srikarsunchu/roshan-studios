@@ -181,9 +181,8 @@ const DynamicBackground = ({ logoPath = "/images/logos/logo_light.png" }) => {
           tempCanvas.width = CONFIG.logoSize;
           tempCanvas.height = CONFIG.logoSize;
 
-          // Set white background to ensure proper alpha detection
-          tempCtx.fillStyle = '#000000';
-          tempCtx.fillRect(0, 0, CONFIG.logoSize, CONFIG.logoSize);
+          // Clear canvas with transparent background
+          tempCtx.clearRect(0, 0, CONFIG.logoSize, CONFIG.logoSize);
 
           const scale = 0.9;
           const scaledSize = CONFIG.logoSize * scale;
@@ -234,9 +233,8 @@ const DynamicBackground = ({ logoPath = "/images/logos/logo_light.png" }) => {
       tempCanvas.width = CONFIG.logoSize;
       tempCanvas.height = CONFIG.logoSize;
 
-      // Clear canvas with black background
-      tempCtx.fillStyle = '#000000';
-      tempCtx.fillRect(0, 0, CONFIG.logoSize, CONFIG.logoSize);
+      // Clear canvas with transparent background
+      tempCtx.clearRect(0, 0, CONFIG.logoSize, CONFIG.logoSize);
 
       // Draw white triangle
       tempCtx.fillStyle = '#ffffff';
@@ -273,7 +271,7 @@ const DynamicBackground = ({ logoPath = "/images/logos/logo_light.png" }) => {
           const pixelIndex = (i * dim + j) * 4;
           const alpha = pixels[pixelIndex + 3];
 
-          if (alpha > 10) {
+          if (alpha > 128) {
             const x = centerX + (j - dim / 2) * 1.0;
             const y = centerY + (i - dim / 2) * 1.0;
 
