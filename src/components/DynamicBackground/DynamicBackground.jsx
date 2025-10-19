@@ -165,38 +165,96 @@ const DynamicBackground = ({ logoPath = "/images/logos/logo_light.png" }) => {
 
     const loadLogo = () => {
       const image = new Image();
-      image.crossOrigin = "anonymous";
+      
+      // Remove crossOrigin for same-origin requests to avoid CORS issues
+      // image.crossOrigin = "anonymous";
 
       image.onload = () => {
         if (isCleanedUpRef.current) return;
 
-        const tempCanvas = document.createElement("canvas");
-        const tempCtx = tempCanvas.getContext("2d");
-        tempCanvas.width = CONFIG.logoSize;
-        tempCanvas.height = CONFIG.logoSize;
+        // Add timeout to ensure image is fully loaded
+        setTimeout(() => {
+          if (isCleanedUpRef.current) return;
 
-        tempCtx.clearRect(0, 0, CONFIG.logoSize, CONFIG.logoSize);
+          const tempCanvas = document.createElement("canvas");
+          const tempCtx = tempCanvas.getContext("2d");
+          tempCanvas.width = CONFIG.logoSize;
+          tempCanvas.height = CONFIG.logoSize;
 
-        const scale = 0.9;
-        const scaledSize = CONFIG.logoSize * scale;
-        const offset = (CONFIG.logoSize - scaledSize) / 2;
+          // Set white background to ensure proper alpha detection
+          tempCtx.fillStyle = '#000000';
+          tempCtx.fillRect(0, 0, CONFIG.logoSize, CONFIG.logoSize);
 
-        tempCtx.drawImage(image, offset, offset, scaledSize, scaledSize);
-        const imageData = tempCtx.getImageData(
-          0,
-          0,
-          CONFIG.logoSize,
-          CONFIG.logoSize
-        );
+          const scale = 0.9;
+          const scaledSize = CONFIG.logoSize * scale;
+          const offset = (CONFIG.logoSize - scaledSize) / 2;
 
-        initParticleSystem(imageData.data, CONFIG.logoSize);
+          // Ensure image maintains aspect ratio and quality
+          tempCtx.imageSmoothingEnabled = true;
+          tempCtx.imageSmoothingQuality = 'high';
+          
+          tempCtx.drawImage(image, offset, offset, scaledSize, scaledSize);
+          
+          try {
+            const imageData = tempCtx.getImageData(
+              0,
+              0,
+              CONFIG.logoSize,
+              CONFIG.logoSize
+            );
+
+            console.log('Image loaded successfully, dimensions:', image.width, 'x', image.height);
+            console.log('Canvas dimensions:', CONFIG.logoSize, 'x', CONFIG.logoSize);
+            
+            initParticleSystem(imageData.data, CONFIG.logoSize);
+          } catch (error) {
+            console.error('Error getting image data:', error);
+            // Fallback: create a simple triangle shape
+            createFallbackTriangle();
+          }
+        }, 100);
       };
 
-      image.onerror = () => {
-        console.error("Failed to load logo image:", logoPath);
+      image.onerror = (error) => {
+        console.error("Failed to load logo image:", logoPath, error);
+        // Fallback: create a simple triangle shape
+        createFallbackTriangle();
       };
 
-      image.src = logoPath;
+      // Add cache busting and ensure proper path
+      const cacheBuster = Date.now();
+      image.src = `${logoPath}?v=${cacheBuster}`;
+    };
+
+    const createFallbackTriangle = () => {
+      console.log('Creating fallback triangle shape');
+      
+      const tempCanvas = document.createElement("canvas");
+      const tempCtx = tempCanvas.getContext("2d");
+      tempCanvas.width = CONFIG.logoSize;
+      tempCanvas.height = CONFIG.logoSize;
+
+      // Clear canvas with black background
+      tempCtx.fillStyle = '#000000';
+      tempCtx.fillRect(0, 0, CONFIG.logoSize, CONFIG.logoSize);
+
+      // Draw white triangle
+      tempCtx.fillStyle = '#ffffff';
+      tempCtx.beginPath();
+      
+      const centerX = CONFIG.logoSize / 2;
+      const centerY = CONFIG.logoSize / 2;
+      const size = CONFIG.logoSize * 0.4;
+      
+      // Create triangle points
+      tempCtx.moveTo(centerX, centerY - size);
+      tempCtx.lineTo(centerX - size, centerY + size);
+      tempCtx.lineTo(centerX + size, centerY + size);
+      tempCtx.closePath();
+      tempCtx.fill();
+
+      const imageData = tempCtx.getImageData(0, 0, CONFIG.logoSize, CONFIG.logoSize);
+      initParticleSystem(imageData.data, CONFIG.logoSize);
     };
 
     function initParticleSystem(pixels, dim) {
